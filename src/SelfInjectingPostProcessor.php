@@ -9,40 +9,21 @@ use Symfony\Component\DependencyInjection\ParameterBag\ParameterBag;
 class SelfInjectingPostProcessor
 {
     /**
-     * @var bool
-     */
-    private $continueOnError;
-
-    /**
      * @var array
      */
     private $parameters = [];
 
-    /**
-     * @param bool $continueOnError
-     */
-    public function __construct(?bool $continueOnError = true)
-    {
-        $this->continueOnError = $continueOnError;
-    }
-
-    public function __invoke(array $config): array
+    public function __invoke(array $config) : array
     {
         $this->parameters = $config;
-        try {
-            $parameters = $this->getResolvedParameters();
-        } catch (SymfonyParameterNotFoundException $exception) {
-            if ($this->continueOnError !== true) {
-                throw ParameterNotFoundException::fromException($exception);
-            }
-        }
+
+        $parameters = $this->getResolvedParameters();
+
         array_walk_recursive($config, function (&$value) use ($parameters) {
             try {
                 $value = $parameters->unescapeValue($parameters->resolveValue($value));
             } catch (SymfonyParameterNotFoundException $exception) {
-                if ($this->continueOnError !== true) {
-                    throw ParameterNotFoundException::fromException($exception);
-                }
+                throw ParameterNotFoundException::fromException($exception);
             }
         });
 
@@ -51,7 +32,7 @@ class SelfInjectingPostProcessor
         return $config;
     }
 
-    private function resolveNestedParameters(array $values, string $prefix = ''): array
+    private function resolveNestedParameters(array $values, string $prefix = '') : array
     {
         $convertedValues = [];
         foreach ($values as $key => $value) {
@@ -69,7 +50,7 @@ class SelfInjectingPostProcessor
         return $convertedValues;
     }
 
-    private function getResolvedParameters(): ParameterBag
+    private function getResolvedParameters() : ParameterBag
     {
         $resolved = $this->resolveNestedParameters($this->parameters);
         $bag = new ParameterBag($resolved);
